@@ -1,37 +1,132 @@
-# Overtone
+<p align="center">
+  <img src="docs/images/icon.png" alt="Overtone icon: a striped orb of overtone lines above a stepped bass line" width="112" height="112">
+</p>
 
-Paint pictures with sound. Describe a scene, and Overtone composes a piece of music whose spectrogram (the picture of a sound's pitches over time) is that scene.
+<h1 align="center">Overtone</h1>
 
-There is no AI and no server. Everything runs in the browser.
+<p align="center">
+  <strong>Type a scene. Overtone writes music whose spectrogram paints it.</strong><br>
+  A dog chasing a ball, a cat walking home under the moon, Leonardo painting the Mona Lisa: every shape you see is the sound itself.
+</p>
 
-Names and things the built-in sketchbook doesn't know (people, places, paintings, characters) are looked up on Wikipedia, and the article's pictures are traced into line art. Only those words are sent to Wikipedia, and the "Look up names" setting turns it off.
+<p align="center">
+  <img alt="Runs in the browser" src="https://img.shields.io/badge/runs%20in-the%20browser-0A84FF">
+  <img alt="No build step" src="https://img.shields.io/badge/build%20step-none-8E8E93">
+  <img alt="No dependencies" src="https://img.shields.io/badge/dependencies-none-8E8E93">
+  <img alt="No AI" src="https://img.shields.io/badge/AI%20inference-none-30D158">
+  <img alt="Web Audio" src="https://img.shields.io/badge/audio-Web%20Audio-FF9F0A">
+  <img alt="Exports MP4 and WAV" src="https://img.shields.io/badge/exports-MP4%20%C2%B7%20WAV-5E5CE6">
+  <img alt="Chrome and Safari tested" src="https://img.shields.io/badge/tested-Chrome%20%C2%B7%20Safari-30D158">
+</p>
+
+<p align="center">
+  <a href="#try-it">Try it</a> ·
+  <a href="#how-it-works">How it works</a> ·
+  <a href="#what-it-can-paint">What it can paint</a> ·
+  <a href="#record-a-video">Record a video</a> ·
+  <a href="#testing-status">Testing status</a>
+</p>
+
+<p align="center">
+  <img src="docs/images/demo.gif" alt="The spectrogram scrolls while a stick figure takes bites out of a hamburger until it's gone" width="800">
+</p>
+
+**AI disclosure:** Overtone was built with substantial AI assistance for code, testing and documentation. The app itself uses no AI: scenes come from a hand-written sketchbook, a word planner and Wikipedia lookups, and the music follows fixed rules.
+
+## What it is
+
+A spectrogram is a picture of sound: left to right is time, bottom to top is pitch, and brightness is loudness. Programs like MetaSynth turn images into sound. Overtone does it the other way round, starting from words: you describe a scene, it draws the scene in white ink, turns every bright pixel into a quiet sine wave at that pitch, and composes a bass line, chords, arpeggios and drums underneath. The screen then shows a live spectrogram of what you hear, and the scene appears out of the music.
+
+<p align="center">
+  <img src="docs/images/app.png" alt="Overtone painting “dude eating a hamburger”: the prompt, a plain-language plan, the live spectrogram, the score and the settings sidebar" width="900">
+</p>
 
 ## Try it
 
-Open `index.html` in Chrome or Safari, type a scene, and press **Paint** with your sound on. You can also paint an image or a video from the Image and Video tabs.
+1. Download or clone this repository.
+2. Open **index.html** in Chrome or Safari. There's nothing to install or build.
+3. Type a scene, turn your sound on and press **Paint**.
 
-**Record video** types your prompt, paints it, and saves an MP4 (16:9, 1:1 or 9:16) with sound, ready for X. **WAV** saves the audio alone. Open the WAV in any spectrogram viewer, like Audacity or Spek, and the same picture appears.
-
-**Remix** keeps the scene but picks a new key, chord progression and scenery. Settings and your last prompt are remembered between visits.
+Looking up names on Wikipedia needs a normal browser tab with an internet connection. Embedded previews, like an editor's file viewer, can paint the built-in drawings but can't go online.
 
 ## How it works
 
-Figures dress for their role (chef hat, crown, wizard hat, pirate hat, shades for a dude, glasses and a cane for grandpa), kids and babies are smaller, and groups ("two friends", "a family", "a king and a queen") walk together. Feelings and conversations have their own scenes: losing or crying under a rain cloud, laughing, talking and arguing in speech bubbles, fighting, thinking in thought bubbles, and flying.
+1. **Read the sentence.** The planner finds who is in it, what they do and what they do it to: "dude eating a hamburger" means a dude, eating, a hamburger. It fixes small typos and shows its plan under the prompt before you paint.
+2. **Act it out.** Posed stick figures play the action: eating takes bites until the food is gone, throwing a javelin runs up, winds up and lets go, arguing trades speech bubbles. People dress for their role (a chef's hat, a crown, shades for a dude), kids are smaller and groups walk together. The scene stretches to the length you pick by repeating the action, never by adding unrelated scenery.
+3. **Find what it doesn't know.** About 1,400 everyday things are traced from your computer's emoji. Names, places and works it has no drawing for, like Leonardo da Vinci or the Eiffel Tower, are looked up on Wikipedia, and the article's pictures are traced into line art.
+4. **Write the music.** The words choose the key, tempo, chord progression, bass line, drum feel and melody: "racing" speeds it up, "sleeping" slows it down. Picture rows are tuned to the overtones of each chord, so the drawing sounds like part of the harmony. Moving things, like a thrown ball, are traced by melody notes.
+5. **Listen.** The display is only a spectrogram of the audio. Open the WAV in any spectrogram viewer, like Audacity or Spek, and the same picture appears.
 
-1. **Words pick drawings.** `sketchbook.js` reads the prompt for people, actions (throw, kick, run, jump, dance, swim, ride, fly a kite, sit, cheer), objects, animals, places and times of day. Actions become little stories with a posed figure: a javelin thrower runs up, winds up, releases, and the javelin's flight is traced by a melody. It fixes small typos, traces about 200 everyday things from the system emoji font, and writes out anything else as lettering.
-2. **Pixels become notes.** Left to right is time, bottom to top is pitch on a log scale, and brightness is loudness. `engine.js` turns every bright pixel into a sine wave at its pitch, tuned to the overtones of the current chord, and composes a bass line, arpeggios and drums underneath.
-3. **The screen only listens.** `app.js` draws a live spectrogram from the browser's AnalyserNode. It also computes the same spectrogram in the background, so you can jump anywhere on the score.
+| Axis | Meaning |
+|---|---|
+| Left to right | Time, 120 pixels per second |
+| Bottom to top | Pitch, 40 Hz to 16 kHz on a log scale. The ground line sits at 500 Hz. |
+| Brightness | Loudness |
 
-## Files
+## What it can paint
+
+| From | Examples |
+|---|---|
+| **Actions** | eat, drink, cook, play an instrument, sing, throw, kick, run, jump hurdles, dance, swim, ride a bike or horse, fly a kite, walk the dog, hug, talk, argue, fight, think, fly, laugh, cry, sit, read, sleep |
+| **Built-in drawings** | dogs, cats, horses, rabbits, birds, butterflies, fish, whales, boats, cars, trains, rockets, planes, cities, houses, trees, flowers, mountains, rain and storms, sun, moon and stars, Olympic rings and stadiums |
+| **Emoji, traced** | about 1,400 nouns, from elephants and guitars to pizza and castles |
+| **Wikipedia** | people, places, paintings, landmarks, characters and bands, shown as traced pictures from their articles |
+| **Your files** | an image becomes a line drawing or keeps its shading; a video becomes a film strip of its frames |
+
+Anything it still can't place is written out as lettering, and the plan line says so.
+
+## Record a video
+
+**Record video** types your prompt on screen, presses Paint, records the scene painting itself with sound, and ends on a title card. It saves an MP4 (H.264 and AAC) that X accepts, in 16:9 at 1920×1080, 1:1 at 1080×1080 or 9:16 at 1080×1920. **Caption** copies a short post, and **WAV** saves the audio alone.
+
+Recording runs in real time, so keep the tab in front. Files run about 2.5 MB per second.
+
+## Controls
+
+| Control | What it does |
+|---|---|
+| **Remix** | Same scene, new key, chords and arrangement |
+| **Length** | 15 s, 30 s, 1 min or 2 min |
+| **Mood** | Auto (from your words), Day (major) or Night (minor) |
+| **Drums** | On or off |
+| **Tuning** | Musical (rows follow the chord's overtones) or Sharp (evenly spaced: a crisper picture, a noisier sound) |
+| **Colors** | Eight spectrogram palettes |
+| **Look up names** | Turn Wikipedia lookups on or off |
+| **Score** | Click or drag to jump anywhere; click the spectrogram to replay a moment |
+| **Keys** | Space play or pause, ← → skip 2 s, F full screen |
+
+Settings and your last prompt are remembered between visits.
+
+## Privacy
+
+Everything runs on your computer. Images and videos you load never leave it. When **Look up names** is on, only the unknown words in your prompt are sent to Wikipedia's public search, and the article pictures are downloaded from Wikimedia.
+
+## Testing status
+
+| Area | Status |
+|---|---|
+| Chrome (macOS) | Painting, scrubbing, settings, recording and Wikipedia lookups tested |
+| Safari (macOS) | Painting and Wikipedia lookups tested; video recording not yet tested |
+| Firefox, Windows, phones | Not tested |
+| Recorded MP4s | Checked with ffprobe and frame grabs: H.264 High, AAC, 16:9 and 9:16 |
+| Prompts | About 60 everyday prompts checked by eye. Unusual sentences can still be misread, and some Wikipedia pictures trace roughly. |
+
+There are no automated tests yet.
+
+## Project layout
 
 | File | What it does |
-| --- | --- |
+|---|---|
 | `index.html` | Layout and styles |
-| `engine.js` | Frequency mapping, music, synthesis, color palettes, FFT, WAV export |
-| `sketchbook.js` | Drawings, the scene planner, image and video processing |
+| `app.js` | Interface, audio graph, live spectrogram, score, recording |
+| `engine.js` | Music, synthesis, color palettes, FFT, WAV export |
+| `sketchbook.js` | Drawings, poses, costumes, the scene planner, Wikipedia lookups, image and video tracing |
 | `emoji-words.js` | About 1,400 nouns mapped to emoji, generated from Unicode emoji names |
-| `app.js` | Interface, audio graph, live spectrogram, timeline, recording |
 | `icon.svg` | Logo |
 
-To add a drawing, write a function in `sketchbook.js` and add an entry to `SUBJECTS` with the words that should trigger it. Set `GITHUB_URL` in `app.js` to link the About panel to the repository.
+To add a drawing, write a function in `sketchbook.js` and add an entry to `SUBJECTS` with the words that should trigger it.
+
+## Credits
+
+Inspired by a clip of a spectrogram painted with music, and by MetaSynth, which turns images into sound. Pictures looked up at paint time come from Wikipedia and Wikimedia Commons under their own licenses; credit them when you share a video that uses them. Emoji are drawn from the operating system's emoji font.
 

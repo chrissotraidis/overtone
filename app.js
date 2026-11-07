@@ -1,7 +1,7 @@
 // app.js: Overtone's interface. Audio graph, live spectrogram, timeline, recording and dialogs.
 'use strict';
 const $=id=>document.getElementById(id);
-const GITHUB_URL='';   // set this once the repository is public
+const GITHUB_URL='https://github.com/chrissotraidis/overtone';
 const opt={length:'medium',mood:'auto',drums:'on',tuning:'harmonic',palette:'magma',shape:'wide',style:'lines',seed:0,web:'on'};
 const saved=(()=>{try{return JSON.parse(localStorage.getItem('overtone')||'{}')}catch{return {}}})();
 for(const [k,v] of Object.entries(saved.opt||{})) if(k in opt&&typeof v===typeof opt[k]) opt[k]=v;
