@@ -80,22 +80,34 @@ function person(c,x,o={}){
   if(A){o={...o}; if(o.outfit==null) o.outfit=A.outfit; if(o.scale==null) o.scale=A.scale;
     if(A.group&&A.group.length&&!o.solo&&o.hipY==null&&o.ground==null){const f0=o.facing||1;
       A.group.forEach((g,k)=>{c.save(); c.globalAlpha=.62; person(c,x-f0*(48+k*44),{...o,companion:true,kind:g.kind,outfit:g.outfit,scale:g.scale||1,hold:null,book:false}); c.restore()})}}
-  const P=poseGeom(x,o), f=P.f, s=P.s, kind=o.kind||'man';
-  const limb=(from,[j,e],a)=>{pen(c,8*s,a);c.beginPath();c.moveTo(from[0],from[1]);c.lineTo(j[0],j[1]);c.lineTo(e[0],e[1]);c.stroke()};
-  const foot=(e,a)=>{pen(c,7*s,a);line(c,e[0],e[1],e[0]+f*9*s,e[1])};
-  if(o.outfit==='cape') drawOutfit(c,P,'cape');
-  limb(P.hip,P.legs[0],.72); foot(P.legs[0][1],.72); limb(P.sh,P.arms[0],.72);
+  const P=poseGeom(x,o), f=P.f, s=P.s, kind=o.kind||'man', hr=P.L.head;
   const ux=(P.sh[0]-P.hip[0])/P.L.torso, uy=(P.sh[1]-P.hip[1])/P.L.torso, nx=-uy, ny=ux;
-  if(kind==='girl'){ink(c,.85); poly(c,[[P.sh[0]+nx*7*s,P.sh[1]+ny*7*s],[P.sh[0]-nx*7*s,P.sh[1]-ny*7*s],[P.hip[0]-ux*16*s-nx*24*s,P.hip[1]-uy*16*s-ny*24*s],[P.hip[0]-ux*16*s+nx*24*s,P.hip[1]-uy*16*s+ny*24*s]],true)}
-  else {pen(c,14*s,.85); line(c,P.hip[0]+ux*4*s,P.hip[1]+uy*4*s,P.sh[0]-ux*3*s,P.sh[1]-uy*3*s)}
-  limb(P.hip,P.legs[1],1); foot(P.legs[1][1],1); limb(P.sh,P.arms[1],1);
-  const hr=P.L.head;
-  pen(c,7*s); line(c,P.sh[0],P.sh[1],P.head[0]-ux*12*s,P.head[1]-uy*12*s);
-  const [hx,hy]=P.head; ink(c,1); circ(c,hx,hy,hr,true);
-  cut(c,()=>circ(c,hx+f*7*s,hy-2*s,2.6*s,true));
-  pen(c,5*s); c.beginPath();
-  if(kind==='girl'){c.arc(hx,hy-1,hr+3*s,Math.PI*0.9,Math.PI*2.1); c.stroke(); ink(c,.9); oval(c,hx-f*19*s,hy+8*s,6*s,16*s,f*0.35,true)}
-  else {c.arc(hx,hy-1,hr+2.5*s,Math.PI*1.05,Math.PI*1.95); c.stroke()}
+  // tapered limbs: thick upper part, thinner lower part, round joints
+  const limb=(from,[j,e],a,w1,w2)=>{pen(c,w1*s,a); line(c,from[0],from[1],j[0],j[1]); pen(c,w2*s,a); line(c,j[0],j[1],e[0],e[1])};
+  const shoe=(e,a)=>{ink(c,a); oval(c,e[0]+f*5*s,e[1]-1.5*s,9*s,4.6*s,0,true)};
+  const hand=(e,a)=>{ink(c,a); circ(c,e[0],e[1],4.6*s,true)};
+  const [hx,hy]=P.head;
+  if(o.outfit==='cape') drawOutfit(c,P,'cape');
+  // long hair hangs behind the body
+  if(kind==='girl'){ink(c,.8); c.beginPath(); c.moveTo(hx-f*hr*0.2,hy-hr*0.9); c.quadraticCurveTo(hx-f*hr*1.5,hy,hx-f*hr*1.05,hy+hr*1.9); c.lineTo(hx-f*hr*0.15,hy+hr*1.35); c.closePath(); c.fill()}
+  // far arm and leg, a little fainter
+  limb(P.hip,P.legs[0],.6,11,8.5); shoe(P.legs[0][1],.6); limb(P.sh,P.arms[0],.6,9,7); hand(P.arms[0][1],.6);
+  // torso: broad shoulders narrowing to the waist; a dress flares out below
+  const at=(p,k,u)=>[p[0]+nx*k*s+ux*u*s,p[1]+ny*k*s+uy*u*s];
+  ink(c,.88); c.lineJoin='round';
+  if(kind==='girl'){poly(c,[at(P.sh,9,0),at(P.sh,-9,0),at(P.hip,-8,8),at(P.hip,-25,-20),at(P.hip,25,-20),at(P.hip,8,8)],true); cut(c,()=>{c.lineWidth=2.4*s; line(c,...at(P.hip,-9,6),...at(P.hip,9,6))})}
+  else {poly(c,[at(P.sh,12,1),at(P.sh,-12,1),at(P.hip,-9,-3),at(P.hip,9,-3)],true); cut(c,()=>{c.lineWidth=2.6*s; line(c,...at(P.hip,-9,2),...at(P.hip,9,2))})}
+  // near leg and arm
+  limb(P.hip,P.legs[1],1,11,8.5); shoe(P.legs[1][1],1); limb(P.sh,P.arms[1],1,9,7); hand(P.arms[1][1],1);
+  // neck and head: a slightly tall oval, nose, ear, eye, brow and mouth
+  pen(c,7*s); line(c,P.sh[0],P.sh[1],hx-ux*hr*0.8,hy-uy*hr*0.8);
+  ink(c,1); oval(c,hx,hy,hr*0.94,hr*1.04,0,true); circ(c,hx+f*hr*0.93,hy+hr*0.12,3.4*s,true);
+  cut(c,()=>{circ(c,hx+f*hr*0.42,hy-hr*0.12,2.5*s,true); c.lineWidth=1.8*s; line(c,hx+f*hr*0.2,hy-hr*0.42,hx+f*hr*0.62,hy-hr*0.48);
+    c.beginPath(); c.arc(hx+f*hr*0.45,hy+hr*0.38,hr*0.24,f>0?0.15:Math.PI*0.6,f>0?Math.PI*0.4:Math.PI*0.85); c.stroke();
+    c.lineWidth=1.6*s; circ(c,hx-f*hr*0.18,hy+hr*0.05,hr*0.2,false)});
+  // hair
+  if(kind==='girl'){ink(c,.9); c.beginPath(); c.arc(hx,hy-hr*0.08,hr*1.06,Math.PI*1.02,Math.PI*1.98); c.quadraticCurveTo(hx,hy-hr*0.62,hx-hr*1.06,hy-hr*0.2); c.fill(); oval(c,hx-f*hr*1.05,hy-hr*0.5,hr*0.32,hr*0.38,0,true)}
+  else {ink(c,.9); c.beginPath(); c.arc(hx,hy-hr*0.05,hr*1.02,f>0?Math.PI*0.95:Math.PI*1.12,f>0?Math.PI*1.88:Math.PI*2.05); c.quadraticCurveTo(hx+f*hr*0.2,hy-hr*0.55,hx-f*hr*0.85,hy+hr*0.1); c.fill()}
   if(o.outfit&&o.outfit!=='cape') drawOutfit(c,P,o.outfit);
   if(o.medal){pen(c,2.5,.9); line(c,P.sh[0]-6,P.sh[1]-2,P.sh[0]+2,P.sh[1]+20); line(c,P.sh[0]+8,P.sh[1]-2,P.sh[0]+2,P.sh[1]+20); ink(c,1); circ(c,P.sh[0]+2,P.sh[1]+25,7,true)}
   if(o.hold){const [ex,ey]=P.arms[o.hold.hand||0][1]; c.save(); c.translate(ex,ey); c.scale(f,1); c.rotate(o.hold.ang||0); (OBJ[o.hold.obj]||OBJ.ball).draw(c); c.restore()}
@@ -438,23 +450,25 @@ const GLYPH={}, SKY_GLYPH=new Set('airplane plane jet helicopter ufo balloon com
 const MULTI_EXTRA={'eiffel tower':'🗼','tokyo tower':'🗼','mount fuji':'🗻','statue of':'🗽','new york':'🗽','golden gate':'🌉','big ben':'🕰️','tower bridge':'🌉','great wall':'🧱','space station':'🛰️','pizza slice':'🍕'};
 const MULTI={...MULTI_EXTRA,'ice cream':'🍦','christmas tree':'🎄','ferris wheel':'🎡','roller coaster':'🎢','hot dog':'🌭','teddy bear':'🧸','t rex':'🦖','polar bear':'🐻‍❄️','race car':'🏎️','hot air':'🎈','space shuttle':'🚀'};
 const glyphCache=new Map();
+// everyday things come from the bundled Noto Emoji font (monochrome, SIL Open Font License), never the system's emoji
+const EMOJI_FONT_READY=(async()=>{try{const f=new FontFace('Overtone Emoji','url(data:font/woff2;base64,'+NOTO_EMOJI_WOFF2+')'); await f.load(); document.fonts.add(f); return true}catch(e){console.warn('Emoji font failed to load',e); return false}})();
+let EMOJI_FONT_OK=false; EMOJI_FONT_READY.then(ok=>{EMOJI_FONT_OK=ok; glyphCache.forEach((v,k)=>{if(!String(k).startsWith('web:')) glyphCache.delete(k)})});
 function glyphPanel(e){
   if(glyphCache.has(e)) return glyphCache.get(e);
+  if(!EMOJI_FONT_OK) return null;
   const S=240, cv=document.createElement('canvas'); cv.width=cv.height=S; const cx=cv.getContext('2d',{willReadFrequently:true});
-  cx.font='190px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'; cx.textAlign='center'; cx.textBaseline='middle'; cx.fillText(e,S/2,S/2+10);
-  const px=cx.getImageData(0,0,S,S).data, n=S*S, A=new Float32Array(n), L=new Float32Array(n);
-  let x0=S,y0=S,x1=-1,y1=-1;
-  for(let i=0;i<n;i++){const a=px[i*4+3]/255; A[i]=a; L[i]=(0.3*px[i*4]+0.59*px[i*4+1]+0.11*px[i*4+2])/255; if(a>0.1){const x=i%S,y=(i/S)|0; if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y}}
-  if(x1<0||(x1-x0)<8){glyphCache.set(e,null);return null}
-  const EL=new Float32Array(n), EA=new Float32Array(n), samp=[];
-  for(let y=1;y<S-1;y++)for(let x=1;x<S-1;x++){const i=y*S+x;
-    const sob=M=>Math.hypot(M[i-S+1]+2*M[i+1]+M[i+S+1]-M[i-S-1]-2*M[i-1]-M[i+S-1], M[i+S-1]+2*M[i+S]+M[i+S+1]-M[i-S-1]-2*M[i-S]-M[i-S+1]);
-    EL[i]=sob(L); EA[i]=sob(A); if(A[i]>0.5&&(i%3===0)) samp.push(EL[i])}
-  samp.sort((a,b)=>a-b); const top=samp[Math.floor(samp.length*0.93)]||1;
+  cx.font='180px "Overtone Emoji"'; cx.fillStyle='#fff'; cx.textAlign='center'; cx.textBaseline='middle'; cx.fillText(e.replace(/\uFE0F/g,''),S/2,S/2+8);   // the emoji-style variation selector would pull in the system's colour emoji
+  const px=cx.getImageData(0,0,S,S).data, n=S*S, A=new Float32Array(n);
+  let x0=S,y0=S,x1=-1,y1=-1, colour=0;
+  for(let i=0;i<n;i++){const a=px[i*4+3]/255; A[i]=a; if(a>0.5&&(Math.abs(px[i*4]-px[i*4+1])>24||Math.abs(px[i*4+1]-px[i*4+2])>24)) colour++;
+    if(a>0.1){const x=i%S,y=(i/S)|0; if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y}}
+  // a coloured result means the browser fell back to a system emoji font: don't use it
+  if(x1<0||(x1-x0)<8||colour>40){glyphCache.set(e,null);return null}
   const W=x1-x0+5, Hh=y1-y0+5, out=document.createElement('canvas'); out.width=W; out.height=Hh;
   const oc=out.getContext('2d'), od=oc.createImageData(W,Hh);
-  for(let y=0;y<Hh;y++)for(let x=0;x<W;x++){const sx=x+x0-2, sy=y+y0-2; if(sx<0||sy<0||sx>=S||sy>=S) continue; const i=sy*S+sx;
-    let v=Math.max(0.3*A[i], Math.min(1,EL[i]/top)*0.95*A[i], Math.min(1,EA[i]*0.9)); if(v<0.1) v=0;
+  for(let y=0;y<Hh;y++)for(let x=0;x<W;x++){const sx=x+x0-2, sy=y+y0-2; if(sx<1||sy<1||sx>=S-1||sy>=S-1) continue; const i=sy*S+sx;
+    const edge=Math.min(1,0.5*Math.hypot(A[i-S+1]+2*A[i+1]+A[i+S+1]-A[i-S-1]-2*A[i-1]-A[i+S-1], A[i+S-1]+2*A[i+S]+A[i+S+1]-A[i-S-1]-2*A[i-S]-A[i-S+1]));
+    let v=Math.max(0.42*A[i],edge); if(v<0.1) v=0;
     const o=(y*W+x)*4; od.data[o]=od.data[o+1]=od.data[o+2]=v*255; od.data[o+3]=255}
   oc.putImageData(od,0,0); glyphCache.set(e,out); return out;
 }
@@ -477,7 +491,7 @@ function glyphAt(c,e,cx,cy,h,o={}){
   c.save(); c.globalCompositeOperation='lighter'; c.translate(cx,cy); if(o.flip) c.scale(-1,1); c.rotate(o.tilt||0); c.drawImage(pnl,-w/2,-h/2,w,h); c.restore(); return true;
 }
 // ---------- nouns: hand-picked emoji first, then ~1,400 names from the Unicode emoji list ----------
-const ALIAS={speech:'🎙️',elections:'🗳️',vote:'🗳️',votes:'🗳️',ballot:'🗳️',job:'💼',school:'🏫',office:'🏢',hospital:'🏥',game:'🎮',games:'🎮',videogames:'🎮',music:'🎵',idea:'💡',ideas:'💡',
+const ALIAS={speech:'🎙️',election:'🗳️',elections:'🗳️',vote:'🗳️',votes:'🗳️',ballot:'🗳️',job:'💼',school:'🏫',office:'🏢',hospital:'🏥',game:'🎮',games:'🎮',videogames:'🎮',music:'🎵',idea:'💡',ideas:'💡',
   war:'⚔️',birthday:'🎂',wedding:'💒',christmas:'🎄',halloween:'🎃',internet:'🌐',news:'📰',time:'⏰',homework:'📝',exam:'📝',test:'📝',lottery:'🎟️',ticket:'🎟️',tickets:'🎟️',
   movie:'🎬',movies:'🎬',concert:'🎤',championship:'🏆',contest:'🏆',debate:'🎤',politics:'🗳️',president:'🏛️',government:'🏛️',court:'⚖️',law:'⚖️',stocks:'📈',crypto:'🪙',bitcoin:'🪙',
   laptop:'💻',computer:'💻',email:'📧',couch:'🛋️',sofa:'🛋️',bed:'🛏️',chair:'🪑',table:'🪑',desk:'🪑',car:'🚗',cars:'🚗',truck:'🚚',bus:'🚌',bike:'🚲',boat:'⛵',house:'🏠',tree:'🌳',beach:'🏖️',sea:'🌊',ocean:'🌊',lake:'🌊',river:'🌊',waves:'🌊',cup:'☕',mug:'☕',soup:'🍲',stew:'🍲',noodles:'🍜',ramen:'🍜',pasta:'🍝',steak:'🥩',meat:'🍖',beer:'🍺',juice:'🧃',milk:'🥛',soda:'🥤',drink:'🥤',
@@ -534,19 +548,28 @@ function storyThrow(x0,span,m){
       ink(c,.3); for(let q=30;q<f2;q+=26){const [px,py]=P2(q/f2); circ(c,px,py,2.2,true)} for(let i=1;i<=3;i++){const [px,py]=P2(i/3); c.save(); c.translate(px,py); OBJ.ball.draw(c); c.restore()}
       ink(c,.95); c.font='800 30px '+FONT; c.fillText('HOME RUN!',hx2+f2-150,y2+70)});
     arcs.push({xa:hx2,xb:hx2+f2,y0:hy2,y1:y2,apex:SKY+10}); x=hx2+f2+60; return {ops,arcs,width:x-x0}}
-  if(m.sport){const px=x+90; ops.push(c=>podium(c,px,m)); x+=260} else {const px=x; ops.push(c=>{person(c,px,{pose:'cheer',kind:m.kind}); sparkle(c,px,G()-230)}); x+=130}
+  if(m.sport){const px=x+90; ops.push(c=>podium(c,px,m)); x+=260}
+  else if(m.pair&&!o.long&&!bk){const pr=m.pair, px=lx+30; ops.push(c=>{person(c,px,{other:true,kind:pr.kind,outfit:pr.outfit,scale:pr.scale,pose:'cheer',facing:-1}); sparkle(c,px,G()-240)}); x=px+120}
+  else {const px=x; ops.push(c=>{person(c,px,{pose:'cheer',kind:m.kind}); sparkle(c,px,G()-230)}); x+=130}
   return {ops,arcs,width:x-x0};
 }
 function storyKick(x0,span,m){
   const g=G(), ops=[], arcs=[]; let x=x0+60;
   const nRun=Math.max(2,Math.min(6,Math.round((span-900)/82)));
-  for(let i=0;i<nRun;i++){const px=x; ops.push(c=>person(c,px,{pose:i%2?'runB':'runA',kind:m.kind})); x+=sp(82)}
+  const pr=m.pair, solo=!!pr, step=pr?82:sp(82);
+  for(let i=0;i<nRun;i++){const px=x; ops.push(c=>person(c,px,{pose:i%2?'runB':'runA',kind:m.kind,solo})); x+=step}
   x+=16; const kx=x, K=poseGeom(kx,{pose:'kick'}), [fx,fy]=K.legs[1][1];
-  ops.push(c=>{person(c,kx,{pose:'kick',kind:m.kind}); ink(c,1); c.save(); c.translate(fx+14,fy-6); OBJ.ball.draw(c); c.restore()});
+  ops.push(c=>{person(c,kx,{pose:'kick',kind:m.kind,solo}); ink(c,1); c.save(); c.translate(fx+14,fy-6); OBJ.ball.draw(c); c.restore()});
   const flight=Math.max(420,Math.min(700,span*0.4)), hx=fx+14, hy=fy-6, y1=m.goal?g-60:g-12, apex=g-250, lx=hx+flight, hump=(hy+y1)/2-apex;
   const P=u=>[hx+flight*u,hy+(y1-hy)*u-4*hump*u*(1-u)];
   ops.push(c=>{ink(c,.3); for(let s=24;s<flight;s+=24){const [px,py]=P(s/flight); circ(c,px,py,2.2,true)} for(let i=1;i<=4;i++){const [px,py]=P(i/4); c.save(); c.translate(px,py); OBJ.ball.draw(c); c.restore()} if(m.goal) goal(c,lx-30)});
   arcs.push({xa:hx,xb:lx,y0:hy,y1,apex});
+  if(pr){ // the friend dives for it in goal, or traps the pass
+    const other={other:true,kind:pr.kind,outfit:pr.outfit,scale:pr.scale};
+    if(m.goal) ops.push(c=>person(c,lx+40,{...other,pose:'jump',facing:-1,lift:20}));
+    else ops.push(c=>person(c,lx+26,{...other,pose:'offer',facing:-1}));
+    x=lx+(m.goal?190:150); const cx=x; ops.push(c=>{person(c,cx,{pose:'cheer',kind:m.kind,solo:true}); person(c,cx+70,{...other,pose:'cheer'}); sparkle(c,cx+35,G()-230)}); x+=200;
+    return {ops,arcs,width:x-x0}}
   x=lx+(m.goal?190:120); const cx=x; ops.push(c=>{person(c,cx,{pose:'cheer',kind:m.kind}); sparkle(c,cx,G()-230)}); x+=130;
   return {ops,arcs,width:x-x0};
 }
@@ -813,7 +836,7 @@ const ACTIONS=[
   {id:'jump',words:'jump jumps jumping jumped leap leaps leaping hurdle hurdles hurdling',min:7,max:14},
   {id:'run',words:'run runs running ran race races racing sprint sprints sprinting jog jogs jogging marathon runner runners',min:5,max:10},
   {id:'sit',words:'sit sits sitting sat read reads reading relax relaxing rest resting sleep sleeps sleeping nap napping bench',min:3.5,max:3.5},
-  {id:'cheer',words:'cheer cheers cheering celebrate celebrates celebrating celebration win wins winning won victory party',min:3,max:10},
+  {id:'cheer',words:'wave waves waving waved greet greeting cheer cheers cheering celebrate celebrates celebrating celebration win wins winning won victory party',min:3,max:10},
 ];
 ACTIONS.unshift(
   {id:'eat',words:'eat eats eating ate eaten devour devours devouring munch munches munching chomp chomps chomping bite bites biting nibble nibbles nibbling snack snacking feast feasting',min:6},
@@ -856,12 +879,15 @@ const VOCAB=new Set();
 function osa(a,b){const m=a.length,n=b.length,d=[];for(let i=0;i<=m;i++)d.push([i]);for(let j=1;j<=n;j++)d[0][j]=j;
   for(let i=1;i<=m;i++)for(let j=1;j<=n;j++){const k=a[i-1]===b[j-1]?0:1; d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+k);
     if(i>1&&j>1&&a[i-1]===b[j-2]&&a[i-2]===b[j-1]) d[i][j]=Math.min(d[i][j],d[i-2][j-2]+1)} return d[m][n]}
+const NOUN_ACT=new Set('javelin soccer hurdle hurdles kite kites bike bikes bicycle ballet marathon speech lecture race races song songs bench party snack'.split(' '));
 function correct(w){
+  if(genericVerb(w)) return w;   // an -ing word is a verb we don't know yet, not a typo
   if(w.length<4||VOCAB.has(w)||STOP.has(w)||/\d/.test(w)||lookupNoun(w)) return w;
   if(/s$/.test(w)&&VOCAB.has(w.slice(0,-1))) return w;
   const lim=w.length>=7?2:1; let best=null,bd=9,tie=false;
   for(const v of VOCAB){ if(v[0]!==w[0]||Math.abs(v.length-w.length)>lim) continue; const d=osa(w,v); if(d<bd){bd=d;best=v;tie=false} else if(d===bd&&v!==best) tie=true }
-  return bd<=lim&&!tie&&!ACT_WORD.has(best)&&!genericVerb(best)?best:w;
+  const verbOnly=(ACT_WORD.has(best)&&!NOUN_ACT.has(best))||genericVerb(best);   // never turn a name into a verb ("beatles" is not "battles")
+  return bd<=lim&&!tie&&!verbOnly?best:w;
 }
 const SCENE_WORDS=new Set([...SUBJECTS.map(s=>s.words||''),...ACTIONS.map(a=>a.words),...Object.values(THEME_WORDS),'javelin javelins spear spears arrow arrows bow archery archer frisbee frisbees disc discus rock rocks stone stones pebble pebbles shotput stick sticks branch ball balls baseball football soccer basketball volleyball goal goals hurdle'].join(' ').split(/\s+/));
 const POOLS={night:['shooting star','house','tree','city'],ocean:['boat','whale','fish','birds'],city:['city','car','train'],
@@ -911,33 +937,38 @@ async function loadPicture(src){
   for(const u of [src,alt,src]){ try{ return await loadImg(u,15000) }catch(e){ await sleepMs(400) } }
   throw new Error('image blocked or timed out');
 }
+const stripTags=h=>{const d=document.createElement('div'); d.innerHTML=h||''; return (d.textContent||'').replace(/\s+/g,' ').trim()};
 async function lookupOnce(phrase){
-  const d=await fetchJSON(WAPI+'action=query&generator=search&gsrlimit=1&gsrsearch='+encodeURIComponent(phrase)+'&prop=pageimages|description|extracts&piprop=thumbnail&pithumbsize=500&exintro=1&explaintext=1&exsentences=2',12000);
+  const d=await fetchJSON(WAPI+'action=query&generator=search&gsrlimit=1&gsrsearch='+encodeURIComponent(phrase)+'&prop=pageimages|description|extracts&piprop=thumbnail|name&pithumbsize=500&exintro=1&explaintext=1&exsentences=2',12000);
   const pg=d.query&&Object.values(d.query.pages)[0]; if(!pg) return null;
   const norm=x=>x.toLowerCase().normalize('NFD').replace(/[^a-z0-9]/g,''), qn=norm(phrase), tn=norm(pg.title);
   const okTitle=tn.includes(qn)||qn.includes(tn)||phrase.split(' ').filter(w=>w.length>2).every(w=>tn.includes(norm(w)))||osa(qn,tn)<=Math.max(2,Math.floor(qn.length/5));
   if(!okTitle||/disambiguation|same term/i.test(pg.description||'')) return null;
   if(!phrase.includes(' ')&&!PERSON_DESC.test(pg.description||'')&&!DRAWABLE.test(pg.description||'')) return null;
-  if(!pg.thumbnail) return null;
   const desc=pg.description||'', ext=' '+(pg.extract||'').toLowerCase()+' ';
   const she=(ext.match(/ (she|her) /g)||[]).length, he=(ext.match(/ (he|his|him) /g)||[]).length;
-  // the main picture must load; if it can't, that's a network problem, so throw and let it retry
-  const lead=await loadPicture(pg.thumbnail.source);
-  const found=[{k:0,key:'web:'+phrase+'#0'}]; glyphCache.set(found[0].key,processPicture(lead,lead.naturalWidth,lead.naturalHeight,'lines',true));
-  try{ // a few more pictures from the article, in the order they appear; these are optional
-    const leadFile=decodeURIComponent(pg.thumbnail.source.split('?')[0].split('/').slice(-2,-1)[0]||'');
-    const pr=await fetchJSON(WAPI+'action=parse&prop=images&page='+encodeURIComponent(pg.title));
-    const files=((pr.parse&&pr.parse.images)||[]).filter(f=>/\.(jpe?g|png)$/i.test(f)&&!BAD_FILE.test(f)&&f!==leadFile).slice(0,6);
-    if(files.length){
-      const ii=await fetchJSON(WAPI+'action=query&prop=imageinfo&iiprop=url|size&iiurlwidth=500&titles='+encodeURIComponent(files.map(f=>'File:'+f.replace(/_/g,' ')).join('|')));
-      const by=new Map(Object.values(ii.query.pages).filter(p=>p.imageinfo).map(p=>[p.title.replace(/^File:/,'').replace(/ /g,'_'),p.imageinfo[0]]));
-      await Promise.all(files.map(async(f,n)=>{const inf=by.get(f); if(!(inf&&inf.thumburl&&inf.width>=220&&inf.height>=160)) return;
-        try{const im=await loadImg(inf.thumburl,12000), key='web:'+phrase+'#'+(n+1); const cv=processPicture(im,im.naturalWidth,im.naturalHeight,'lines',true);
-          if((cv.ink||0)>0.03&&(cv.ink||0)<0.13&&(cv.speck||0)<0.45){glyphCache.set(key,cv); found.push({k:n+1,key})}}catch{}}));
-    }
-  }catch{}
-  found.sort((x,y)=>x.k-y.k);
-  return {title:pg.title,desc,person:PERSON_DESC.test(desc),kind:she>he?'girl':'man',keys:found.slice(0,4).map(x=>x.key)};
+  // candidate pictures: the article's main picture first, then others in the order they appear
+  let files=[]; if(pg.pageimage) files.push(pg.pageimage);
+  try{ const pr=await fetchJSON(WAPI+'action=parse&prop=images&page='+encodeURIComponent(pg.title));
+    files.push(...((pr.parse&&pr.parse.images)||[]).filter(f=>/\.(jpe?g|png)$/i.test(f)&&!BAD_FILE.test(f)&&f!==pg.pageimage).slice(0,6)) }catch{}
+  if(!files.length) return null;
+  // licence check: only freely licensed pictures, never "fair use" ones, and keep who made them for the credits
+  const ii=await fetchJSON(WAPI+'action=query&prop=imageinfo&iiprop=url|size|extmetadata&iiextmetadatafilter=Artist|LicenseShortName|NonFree&iiurlwidth=500&titles='+encodeURIComponent(files.map(f=>'File:'+f.replace(/_/g,' ')).join('|')),12000);
+  const by=new Map(Object.values((ii.query&&ii.query.pages)||{}).filter(p=>p.imageinfo).map(p=>[p.title.replace(/^File:/,'').replace(/ /g,'_'),p.imageinfo[0]]));
+  const free=f=>{const inf=by.get(f.replace(/ /g,'_')); if(!inf||!inf.thumburl) return null; const md=inf.extmetadata||{}, lic=(md.LicenseShortName&&md.LicenseShortName.value)||'';
+    if(md.NonFree&&String(md.NonFree.value)==='true') return null; if(/fair use|non-free|copyrighted/i.test(lic)||!lic) return null;
+    return {url:inf.thumburl,w:inf.width,h:inf.height,file:f.replace(/_/g,' '),license:lic,artist:stripTags(md.Artist&&md.Artist.value).slice(0,80)||'unknown'}};
+  const cands=files.map(free).filter(Boolean);
+  if(!cands.length) return null;
+  const found=[];
+  await Promise.all(cands.map(async(cd,n)=>{ if(n>0&&(cd.w<220||cd.h<160)) return;
+    let im=null; try{ im=n===0?await loadPicture(cd.url):await loadImg(cd.url,12000) }catch(e){ if(n===0) throw e; return }
+    const cv=processPicture(im,im.naturalWidth,im.naturalHeight,'lines',true);
+    if(n===0||((cv.ink||0)>0.03&&(cv.ink||0)<0.13&&(cv.speck||0)<0.45)){const key='web:'+phrase+'#'+n; glyphCache.set(key,cv); found.push({k:n,key,credit:cd})}}));
+  if(!found.length) return null;
+  found.sort((x,y)=>x.k-y.k); const use=found.slice(0,4);
+  return {title:pg.title,desc,person:PERSON_DESC.test(desc),kind:she>he?'girl':'man',keys:use.map(x=>x.key),
+    credits:use.map(x=>({key:x.key,file:x.credit.file,artist:x.credit.artist,license:x.credit.license}))};
 }
 async function lookupWeb(phrase){
   if(WEB.has(phrase)) return WEB.get(phrase);
@@ -1139,7 +1170,8 @@ function composeInner(prompt,target=30,seed=0,shownTitle=null){
   const lo=(p.match(/\b(sleep\w*|calm|moon\w*|night|quiet|rain\w*|sad|lonely|slow\w*|gentle|read\w*|sit\w*|relax\w*|nap\w*|dream\w*|snow\w*|peace\w*|soft|cozy|lazy|float\w*|tired|sleepy|los\w*|cry\w*|sob\w*|weep\w*|fail\w*|think\w*|wonder\w*)\b/g)||[]).length;
   const energy=Math.max(0.1,Math.min(0.95,0.5+0.17*hi-0.17*lo));
   const act0=ACTOR, wrapped=ops.map(op=>c=>{const prev=ACTOR; ACTOR=act0; try{op(c)}finally{ACTOR=prev}});
-  return {rawDur,ops:wrapped,arcs,minor,night,energy,musicKey:words.join(' '),plan:{parts,fixes,fills,fallback,web:[...new Set(spans.map(sp=>sp.info.title))]}};
+  return {rawDur,ops:wrapped,arcs,minor,night,energy,musicKey:words.join(' '),plan:{parts,fixes,fills,fallback,web:[...new Set(spans.map(sp=>sp.info.title))],
+    credits:spans.flatMap(sp=>(sp.info.credits||[])).filter((c,i,arr)=>arr.findIndex(d=>d.file===c.file)===i)}};
 }
 function fetchStory(ops,arcs,x0,m){
   const g=G(), x=s=>x0+s*PPS, R=poseGeom(x(1.9),{pose:'release'}), [hx,hy]=R.arms[0][1];
@@ -1228,6 +1260,10 @@ function videoDesc(frames){
   const x0=PPS*0.8; let x=x0; const placed=frames.map(f=>{const at=x; x+=f.width+FRAME_GAP; return [f,at]});
   return {rawDur:x/PPS+2.2, ops:[c=>placed.forEach(([f,at])=>c.drawImage(f,at,SKY+4))], arcs:[], minor:false, night:false};
 }
+
+
+
+
 
 
 

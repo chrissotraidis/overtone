@@ -236,7 +236,7 @@
   <div class="about-body">
     <p class="lead">Overtone writes a piece of music whose spectrogram, the picture of a sound’s pitches over time, is the scene you describe.</p>
     <h3>No AI</h3>
-    <p>Everything happens in this page. Overtone reads your sentence for who is in it, what they do and what they do it to, then acts that out with posed figures: eating takes bites until the food is gone, drinking tips the cup, playing strums the instrument. Names and things it doesn’t have a drawing for, like “Leonardo da Vinci” or “the Eiffel Tower”, are looked up on Wikipedia, and the article’s pictures are traced into line art. Only those words are sent to Wikipedia, and you can turn this off. It can act out up to two actions, like “a girl running and jumping”. It fixes small typos, traces everyday things it has no drawing for from your computer’s emoji, and writes out any word it still doesn’t know.</p>
+    <p>Everything happens in this page. Overtone reads your sentence for who is in it, what they do and what they do it to, then acts that out with posed figures: eating takes bites until the food is gone, drinking tips the cup, playing strums the instrument. Names and things it doesn’t have a drawing for, like “Leonardo da Vinci” or “the Eiffel Tower”, are looked up on Wikipedia, and the article’s freely licensed pictures are traced into line art and credited in your video. Only those words are sent to Wikipedia, and you can turn this off. It can act out up to two actions, like “a girl running and jumping”. It fixes small typos, traces everyday things it has no drawing for from the open Noto Emoji set, and writes out any word it still doesn’t know.</p>
     <h3>From picture to sound</h3>
     <ol>
       <li>Left to right is time, bottom to top is pitch, and brightness is loudness.</li>
@@ -257,16 +257,19 @@
 <dialog id="done" aria-labelledby="doneTitle">
   <header><h2 id="doneTitle">Your video is ready</h2><button class="quiet" data-close type="button" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></header>
   <video id="vid" controls playsinline></video>
+  <p id="vcredits" class="muted" style="margin:10px 16px 0;font-size:12px" hidden></p>
   <footer><span id="vinfo" class="muted"></span><span style="flex:1"></span><button class="quiet" id="copyCap" type="button" title="Copy a caption for X"><svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 00-1-1H5a1 1 0 00-1 1v10a1 1 0 001 1h3"/></svg>Caption</button><button id="dlwav2" type="button"><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>WAV</button><button class="primary" id="dlvid2" type="button"><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>Download video</button></footer>
 </dialog>
 
 <div class="toast" id="toast" role="status"></div>
 <script src="engine.js"></script>
+<script src="emoji-font.js"></script>
 <script src="emoji-words.js"></script>
 <script src="sketchbook.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
+
 
 
 

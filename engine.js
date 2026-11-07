@@ -46,6 +46,7 @@ function buildScene(desc,o){
     const [off,maj]=(sec===1?M.progB:M.prog)[b%4];
     let bass=key+off; if(bass>key+6) bass-=12;
     const t0=b*bar, third=maj?4:3; chords.push({t0,t1:t0+bar,bass});
+    {const pr=reg(bass+12,110,220); [0,third,7].forEach(iv=>events.push({type:'pad',t:t0,m:pr+iv,d:bar,last:b===bars-1}))}
     if(b===bars-1){events.push({type:'bass',t:t0,m:bass,d:bar*0.8});continue}
     const bs=sec===2?2:M.bassStyle;
     if(bs===0) [0,0,7,12].forEach((iv,i)=>events.push({type:'bass',t:t0+i*beat,m:bass+iv,d:beat*0.8}));
@@ -64,7 +65,8 @@ function buildScene(desc,o){
         for(let j=0;j<4;j++){const d=M.melody[(b*4+j)%8]; const m=reg(key+12+deg[d%7]+(d>=7?12:0),262,494); events.push({type:'lead',t:t0+j*beat,m,d:beat*0.9})}
       } else {
         const pat=ARPS[M.arpStyle], step=M.sixteenth&&sec===0?beat/4:beat/2, n=Math.round(bar/step);
-        for(let j=0;j<n;j++){ if(sec===2&&j%2) continue; const m=reg(bass+tones[pat[j%8]],262,520); events.push({type:'arp',t:t0+j*step,m,d:sec===2?0.4:Math.min(0.18,step*0.9),dec:M.arpDecay}) }
+        for(let j=0;j<n;j++){ if(sec===2&&j%2) continue; const m=reg(bass+tones[pat[j%8]],262,520); events.push({type:'arp',t:t0+j*step,m,d:sec===2?0.4:Math.min(0.18,step*0.9),dec:M.arpDecay});
+          if(j%2===0) events.push({type:'arp',t:t0+j*step+beat*0.75,m,d:0.12,dec:M.arpDecay,echo:0.32}) }
       }
     }
   }
@@ -144,15 +146,31 @@ async function render(scene,sr,mode,onProgress){
       const e=ease(tt/att)*Math.exp(-decay*Math.max(0,tt-att))*(tt>d?1-ease((tt-d)/rel):1);
       let v=0; for(const [m,gn] of partials) v+=gn*Math.sin(2*Math.PI*f*m*tt); out[s0+i]+=amp*e*v}
   };
+  // everything stays below about 500 Hz or above 14 kHz, so the music never draws over the picture
+  const keep=(f,m)=>f*m<480;
+  // bass: a plucked string, its brighter overtones dying away first
+  const pluck=(t,f,d,amp)=>{const s0=Math.floor(t*sr), n=Math.floor((d+0.1)*sr), parts=[1,2,3,4,5,6].filter(m=>keep(f,m));
+    for(let i=0;i<n&&s0+i<N;i++){const tt=i/sr, env=ease(tt/0.012)*Math.exp(-1.1*tt)*(tt>d?1-ease((tt-d)/0.1):1); let v=0;
+      for(const m of parts) v+=Math.sin(2*Math.PI*f*m*tt)*Math.exp(-(m-1)*3.2*tt)/m; out[s0+i]+=amp*env*v}};
+  // pad: two slightly detuned voices that swell in and out under each bar
+  const pad=(t,f,d,last)=>{const s0=Math.floor(t*sr), rel=last?2.4:0.35, n=Math.floor((d+rel)*sr), a=0.028;
+    for(let i=0;i<n&&s0+i<N;i++){const tt=i/sr, env=ease(tt/Math.min(0.6,d*0.4))*(tt>d?1-ease((tt-d)/rel):1)*(0.85+0.15*Math.sin(2*Math.PI*0.35*tt));
+      let v=Math.sin(2*Math.PI*f*0.998*tt)+Math.sin(2*Math.PI*f*1.002*tt); if(keep(f,2)) v+=0.3*Math.sin(2*Math.PI*f*2*tt); out[s0+i]+=a*env*v}};
+  // lead: a soft voice with a little vibrato
+  const lead=(t,f,d)=>{const s0=Math.floor(t*sr), n=Math.floor((d+0.18)*sr); let ph=0;
+    for(let i=0;i<n&&s0+i<N;i++){const tt=i/sr, env=ease(tt/0.04)*Math.exp(-1.2*tt)*(tt>d?1-ease((tt-d)/0.18):1);
+      ph+=2*Math.PI*f*(1+0.004*Math.sin(2*Math.PI*5.2*tt)*Math.min(1,tt/0.25))/sr; out[s0+i]+=0.075*env*Math.sin(ph)}};
   for(const e of scene.events){
-    if(e.type==='bass') tone(e.t,mtof(e.m),e.d,0.2,[[1,1],[2,.45],[3,.2]],0.02,0.08,1.2);
-    else if(e.type==='arp') tone(e.t,mtof(e.m),e.d,0.06,[[1,1]],0.008,0.12,e.dec||6);
-    else if(e.type==='lead') tone(e.t,mtof(e.m),e.d,0.075,[[1,1]],0.03,0.14,1.6);
+    if(e.type==='bass') pluck(e.t,mtof(e.m),e.d,0.19);
+    else if(e.type==='pad') pad(e.t,mtof(e.m),e.d,e.last);
+    else if(e.type==='arp') tone(e.t,mtof(e.m),e.d,0.06*(e.echo||1),[[1,1],[2,0.12]],0.008,0.12,e.dec||6);
+    else if(e.type==='lead') lead(e.t,mtof(e.m),e.d);
     else if(e.type==='tom'){const s0=Math.floor(e.t*sr), L=0.3; let ph=0; for(let i=0;i<L*sr&&s0+i<N;i++){const tt=i/sr; ph+=2*Math.PI*(95+70*Math.exp(-tt/0.04))/sr; out[s0+i]+=0.26*ease(tt/0.004)*(1-ease((tt-L+0.06)/0.06))*Math.exp(-tt/0.12)*Math.sin(ph)}}
     else if(e.type==='ping') tone(e.t,e.f,0.12,0.09,[[1,1]],0.008,0.08,14);
     else if(e.type==='kick'){const s0=Math.floor(e.t*sr), L=0.4; let ph=0; for(let i=0;i<L*sr&&s0+i<N;i++){const tt=i/sr; ph+=2*Math.PI*(45+105*Math.exp(-tt/0.03))/sr; out[s0+i]+=0.35*ease(tt/0.004)*(1-ease((tt-L+0.08)/0.08))*Math.exp(-tt/0.16)*Math.sin(ph)}}
     else if(e.type==='hat'){const s0=Math.floor(e.t*sr); for(let j=0;j<5;j++){const f=14600+j*230+Math.random()*80; for(let i=0;i<0.09*sr&&s0+i<N;i++){const tt=i/sr; out[s0+i]+=0.012*ease(tt/0.006)*(1-ease((tt-0.06)/0.03))*Math.exp(-tt/0.025)*Math.sin(2*Math.PI*f*tt)}}}
   }
+  {const fadeN=Math.min(N,Math.floor(1.2*sr)); for(let i=0;i<fadeN;i++) out[N-1-i]*=ease(i/fadeN)}
   let peak=0; for(let i=0;i<N;i++)peak=Math.max(peak,Math.abs(out[i]));
   const gain=0.89/(peak||1); for(let i=0;i<N;i++)out[i]*=gain;
   onProgress&&onProgress(1);
@@ -199,6 +217,7 @@ function wav(data,sr){
   for(let i=0;i<data.length;i++)v.setInt16(44+i*2,Math.max(-1,Math.min(1,data[i]))*32767,true);
   return new Blob([b],{type:'audio/wav'});
 }
+
 
 
 

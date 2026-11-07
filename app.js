@@ -212,6 +212,7 @@ async function videoFrames(count,progress){
   return frames;
 }
 async function makeDesc(progress){
+  await EMOJI_FONT_READY;
   const target=LENGTHS[opt.length];
   if(S.src==='text'){ await resolveWeb(promptText(),ps=>overlay('Looking up “'+ps.join('”, “')+'” on Wikipedia…',0.3));
     const failed=WEB_ON?webPhrases(promptText()).filter(ph=>WEB_ERR.has(ph)):[];
@@ -333,6 +334,9 @@ function vlayout(shape){
   return L;
 }
 function rr(c,x,y,w,h,r){c.beginPath();c.roundRect(x,y,w,h,r)}
+// credits for pictures from Wikimedia Commons, shown in the video's end card and the caption
+const creditList=()=>(desc&&desc.plan&&desc.plan.credits)||[];
+const creditLine=()=>{const cs=creditList(); return cs.length?'Pictures via Wikimedia Commons: '+cs.map(c=>c.artist+' ('+c.license+')').join('; '):''};
 function drawVideo(){
   const L=rec.L, c=rec.cx, now=performance.now(), dx=L.dx, dw=L.dw;
   c.fillStyle='#0e0e10'; c.fillRect(0,0,L.W,L.H);
@@ -366,6 +370,7 @@ function drawVideo(){
     c.globalAlpha=a; c.textAlign='center'; const ls=Math.round(L.h1*1.7); if(LOGO.complete) c.drawImage(LOGO,dx+dw/2-ls/2,y+L.dh/2-ls-L.h1*1.9,ls,ls);
     c.fillStyle='#eeeaf6'; c.font='700 '+Math.round(L.h1*1.45)+'px '+FONT; c.fillText('Every shape here is sound.',dx+dw/2,y+L.dh/2);
     c.fillStyle='#8f8c95'; c.font='400 '+Math.round(L.sub*0.9)+'px '+FONT; c.fillText('Made with Overtone',dx+dw/2,y+L.dh/2+L.sub*4.3);
+    const cl=rec.credits; if(cl){c.font='400 '+Math.round(L.sub*0.62)+'px '+FONT; c.fillStyle='#77737f'; let t=cl; while(c.measureText(t).width>dw-60&&t.length>20) t=t.slice(0,-2); if(t!==cl) t=t.slice(0,-1)+'…'; c.fillText(t,dx+dw/2,y+L.dh-L.sub*1.2)}
     c.fillStyle='#fca65e'; c.font='400 '+L.sub+'px '+FONT; c.fillText('“'+rec.label+'”',dx+dw/2,y+L.dh/2+L.sub*2.2); c.textAlign='left'; c.globalAlpha=1}
   c.restore(); rr(c,dx,y,dw,L.dh,18); c.strokeStyle='#272333'; c.lineWidth=2; c.stroke();
   y+=L.dh+16;
@@ -396,10 +401,10 @@ async function recordInner(){
   const L=vlayout(opt.shape), cv=document.createElement('canvas'); cv.width=L.W; cv.height=L.H;
   let stopReq; const stopped=new Promise(r=>stopReq=r);
   const boxText=S.src==='text'?promptText():(S.src==='image'?'🖼  ':'🎞  ')+(S.src==='image'?S.imageName:S.videoName);
-  rec={L,cv,cx:cv.getContext('2d'),phase:'intro',box:'',label,started:performance.now(),stop:()=>{rec.early=true;stopReq()}};
+  rec={L,cv,cx:cv.getContext('2d'),phase:'intro',box:'',label,credits:creditLine(),started:performance.now(),stop:()=>{rec.early=true;stopReq()}};
   drawVideo();
-  const stream=new MediaStream([...cv.captureStream(60).getVideoTracks(),...recDest.stream.getAudioTracks()]);
-  const chunks=[], mr=new MediaRecorder(stream,{mimeType:type,videoBitsPerSecond:10e6,audioBitsPerSecond:192000});
+  const stream=new MediaStream([...cv.captureStream(30).getVideoTracks(),...recDest.stream.getAudioTracks()]);
+  const chunks=[], mr=new MediaRecorder(stream,{mimeType:type,videoBitsPerSecond:L.W*L.H>2e6?4.5e6:3.5e6,audioBitsPerSecond:192000});
   mr.ondataavailable=e=>e.data.size&&chunks.push(e.data);
   rec.mr=mr; mr.onerror=e=>toast('Recorder error: '+(e.error&&e.error.message||'unknown'));
   const done=new Promise(r=>mr.onstop=r); mr.start(500);
@@ -425,13 +430,13 @@ function setRecUI(on){
 function showDone(){
   const v=$('vid'); v.src=lastVideo.url;
   const info=()=>$('vinfo').textContent=lastVideo.W+'×'+lastVideo.H+(isFinite(v.duration)?' · '+fmt(v.duration):'')+' · '+lastVideo.ext.toUpperCase()+' · '+(lastVideo.blob.size/1e6).toFixed(1)+' MB'+(lastVideo.ext==='webm'?' · X needs MP4, so record in Chrome or Safari':'');
-  v.onloadedmetadata=info; info(); $('done').showModal();
+  v.onloadedmetadata=info; info(); $('vcredits').textContent=creditLine(); $('vcredits').hidden=!creditLine(); $('done').showModal();
 }
 
 // ---------- about ----------
 (function(){
   $('sketchText').textContent='People who walk, run, race, throw (balls, javelins, frisbees, arrows), kick, jump hurdles, dance, swim, ride bikes and horses, fly kites, sit, read and cheer. '+
-    SUBJECTS.filter(s=>s.words&&s.name!=='person').map(s=>s.name).join(', ')+', the sun, moon and stars, Olympic rings and stadiums, and about '+Object.keys(GLYPH).length+' everyday things traced from emoji, from elephants to guitars.';
+    SUBJECTS.filter(s=>s.words&&s.name!=='person').map(s=>s.name).join(', ')+', the sun, moon and stars, Olympic rings and stadiums, and about '+Object.keys(GLYPH).length+' everyday things traced from the open Noto Emoji set, from elephants to guitars.';
   const gh=$('ghLink'); if(GITHUB_URL){gh.href=GITHUB_URL; gh.textContent='View on GitHub'} else {gh.removeAttribute('href'); gh.classList.add('disabled'); gh.textContent='GitHub · coming soon'}
 })();
 
@@ -442,7 +447,7 @@ $('form').addEventListener('submit',e=>{e.preventDefault(); paint()});
 $('prompt').addEventListener('input',()=>{updatePlan(); persist()});
 $('remix').addEventListener('click',()=>{ if(rec||composing) return; opt.seed=(opt.seed+1)%600; persist(); updatePlan(); paint() });
 $('restart').addEventListener('click',()=>{ if(!scene) return; if(playing) play(0); else seek(0) });
-$('copyCap').addEventListener('click',async()=>{const t='“'+label+'”, painted entirely with sound. Every shape you see is the music’s spectrogram.';
+$('copyCap').addEventListener('click',async()=>{const t='“'+label+'”, painted entirely with sound. Every shape you see is the music’s spectrogram.'+(creditList().length?'\n\n'+creditList().map(c=>c.file+' by '+c.artist+', '+c.license+', via Wikimedia Commons').join('\n'):'');
   try{await navigator.clipboard.writeText(t); toast('Caption copied')}catch{toast(t)}});
 document.addEventListener('visibilitychange',()=>{ if(rec&&document.hidden) rec.hidden=true });
 window.addEventListener('error',e=>{ overlay(null); toast('Something went wrong: '+(e.message||'unknown error')) });
@@ -477,10 +482,12 @@ document.addEventListener('keydown',e=>{
 });
 document.querySelectorAll('.seg[data-key]').forEach(seg=>seg.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===opt[seg.dataset.key])));
 $('palName').textContent=PALETTES[opt.palette].name; clearView();
-setSrc('text'); syncUI();
+setSrc('text'); syncUI(); EMOJI_FONT_READY.then(updatePlan);
 window.overtone={compose,buildScene,render,wav,processPicture,recordDemo,paint,seek,play,pause,opt,S,
   state:()=>({playing,pos:scene?position():0,dur:scene&&scene.dur,histDone:hist?hist.done.reduce((a,b)=>a+b,0):0,histW:hist&&hist.W}),
   lastVideo:()=>lastVideo, setSrc, loadImage, loadVideo};
+
+
 
 
 
