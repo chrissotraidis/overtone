@@ -25,7 +25,8 @@
   <a href="#how-it-works">How it works</a> ·
   <a href="#what-it-can-paint">What it can paint</a> ·
   <a href="#record-a-video">Record a video</a> ·
-  <a href="#testing-status">Testing status</a>
+  <a href="#testing-status">Testing status</a> ·
+  <a href="CHANGELOG.md">What's new</a>
 </p>
 
 <p align="center">
